@@ -1,0 +1,12 @@
+{
+  "name": "due-manager-mysql",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "mysql2": "^3.22.3"
+  }
+}

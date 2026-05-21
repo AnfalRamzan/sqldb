@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Due Manager Pro | Complete Collection System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f0f2f5; overflow: hidden; height: 100vh; }
+        body.modal-open { overflow: hidden; }
+        
+        /* Login Screen */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
+        .login-card { background: white; border-radius: 32px; padding: 32px 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); }
+        .login-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #1e3c72, #2a5298); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .login-icon i { font-size: 36px; color: white; }
+        .login-card h2 { font-size: 1.6rem; color: #1a1a2e; }
+        .login-card p { color: #666; margin-bottom: 24px; font-size: 0.85rem; }
+        .input-group { position: relative; margin: 12px 0; }
+        .login-input { width: 100%; padding: 14px 14px 14px 44px; border: 2px solid #e0e0e0; border-radius: 16px; font-size: 15px; }
+        .login-input:focus { outline: none; border-color: #1e3c72; }
+        .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; }
+        .password-toggle { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999; }
+        .login-select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 16px center; background-size: 16px; cursor: pointer; }
+        .login-btn { width: 100%; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; border: none; padding: 14px; border-radius: 16px; font-weight: 600; margin-top: 12px; cursor: pointer; transition: transform 0.1s; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .login-error { color: #dc3545; margin-top: 12px; display: none; font-size: 0.8rem; }
+        
+        /* App Layout */
+        .app { max-width: 1600px; margin: 0 auto; height: 100vh; background: #f0f2f5; display: none; flex-direction: column; overflow: hidden; }
+        .app-header { background: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex-shrink: 0; z-index: 100; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo i { font-size: 24px; color: #1e3c72; }
+        .logo h1 { font-size: 1.2rem; color: #1a1a2e; }
+        .pkr-badge { background: #28a745; color: white; font-size: 0.6rem; padding: 2px 8px; border-radius: 30px; }
+        .user-info { display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 6px 16px; border-radius: 40px; font-size: 0.85rem; }
+        .role-badge { padding: 2px 10px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .role-badge.admin { background: #dc3545; color: white; }
+        .role-badge.user { background: #28a745; color: white; }
+        .logout-btn { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px; margin-left: 8px; }
+        
+        /* Main Container – column on mobile, row on desktop */
+        .main-container { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow: hidden; }
+        @media (max-width: 767px) {
+            .main-container { overflow-y: auto; overflow-x: hidden; }
+            .list-view { flex-shrink: 0; }
+            .side-panels { flex-shrink: 0; }
+        }
+        @media (min-width: 768px) { 
+            .main-container { flex-direction: row; align-items: stretch; overflow: hidden; } 
+            .list-view { flex: 3; min-width: 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; } 
+            .side-panels { flex: 1.2; display: flex; flex-direction: column; gap: 16px; max-height: 100%; overflow-y: auto; } 
+        }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; flex-shrink: 0; }
+        @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+        .stat-card { background: white; border-radius: 20px; padding: 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+        .stat-icon { width: 40px; height: 40px; background: #eef2ff; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+        .stat-icon i { font-size: 18px; color: #1e3c72; }
+        .stat-info { flex: 1; }
+        .stat-label { font-size: 0.65rem; color: #5b6e8c; }
+        .stat-value { font-weight: 700; font-size: 0.85rem; color: #0f172a; word-break: break-word; }
+        
+        /* Search & Action Bar */
+        .search-section { background: white; border-radius: 24px; padding: 12px; margin-bottom: 12px; flex-shrink: 0; }
+        .search-wrapper { position: relative; width: 100%; display: flex; align-items: center; gap: 6px; }
+        .search-wrapper i.fa-search { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; }
+        .search-wrapper input { width: 100%; padding: 10px 45px 10px 40px; border: 1.5px solid #e2e8f0; border-radius: 40px; font-size: 0.85rem; }
+        .mic-inside { background: #1e3c72; border: none; width: 36px; height: 36px; border-radius: 30px; color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .action-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+        .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; border: 1.5px solid #e2e8f0; background: white; border-radius: 40px; font-size: 0.75rem; cursor: pointer; }
+        .filter-btn.active { background: #1e3c72; color: white; border-color: #1e3c72; }
+        .add-customer-btn { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; border: none; padding: 8px 16px; border-radius: 40px; font-weight: 600; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+        .import-export { display: flex; gap: 6px; flex-wrap: wrap; }
+        .import-btn, .export-excel-btn, .export-pdf-btn, .refresh-btn { background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; }
+        .import-btn.disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+        
+        /* Table Container – horizontal scroll on all devices */
+        .table-container { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .table-scroll { overflow-x: auto; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .customers-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 700px; }
+        .customers-table th, .customers-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+        .customers-table th { background: #f8fafc; font-weight: 600; color: #1e293b; position: sticky; top: 0; z-index: 10; }
+        .due-row { border-left: 3px solid #e11d48; background: #fff5f5; }
+        .cleared-row { border-left: 3px solid #10b981; background: #f0fdf4; }
+        .due-amount-value { font-weight: 700; color: #e11d48; }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-btn { background: none; border: none; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.1s; }
+        
+        /* Side Panels */
+        .reminder-panel, .collection-panel { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex-shrink: 0; display: flex; flex-direction: column; }
+        .reminder-header { background: linear-gradient(135deg, #ef4444, #f97316); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .collection-header { background: linear-gradient(135deg, #10b981, #14b8a6); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
+        .reminder-list, .collection-list { flex: 1; overflow-y: auto; max-height: 280px; }
+        .reminder-item, .collection-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s; }
+        .reminder-item:hover { background: #fef2f2; }
+        .collection-item:hover { background: #f0fdf4; }
+        .reminder-name, .collection-name { font-weight: 700; font-size: 0.85rem; color: #1f2937; margin-bottom: 4px; }
+        .reminder-detail, .collection-detail { font-size: 0.7rem; color: #6b7280; display: flex; gap: 12px; flex-wrap: wrap; }
+        .badge-secondary { background: #64748b; color: white; padding: 2px 10px; border-radius: 30px; font-size: 0.7rem; }
+        .live-badge { background: #10b981; font-size: 0.6rem; padding: 2px 8px; border-radius: 20px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .date-info { padding: 8px 16px; font-size: 0.7rem; color: #5b6e8c; border-top: 1px solid #eef2ff; text-align: center; flex-shrink: 0; }
+        
+        /* Modals – touch‑optimized */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 3000; display: none; padding: 16px; }
+        .modal-container { background: white; border-radius: 28px; width: 100%; max-width: 650px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+        @media (max-width: 640px) { 
+            .modal-container { max-width: 95%; border-radius: 20px; margin: 10px; }
+            .modal-body { padding: 16px; }
+        }
+        .modal-header { padding: 14px 18px; border-bottom: 1px solid #eef2ff; display: flex; justify-content: space-between; align-items: center; background: white; flex-shrink: 0; }
+        .modal-close { font-size: 28px; background: none; border: none; cursor: pointer; color: #7e8b9c; padding: 0 8px; }
+        .modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+        .form-group { margin-bottom: 14px; position: relative; }
+        .form-group label { font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 6px; color: #1f2937; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; }
+        .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .dropdown-list div { padding: 8px 12px; cursor: pointer; font-size: 0.8rem; border-bottom: 1px solid #f1f5f9; }
+        .dropdown-list div:hover { background: #eef2ff; }
+        .row-2cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 640px) { .row-2cols { grid-template-columns: 1fr; } .due-boxes { grid-template-columns: 1fr; } }
+        .due-boxes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .photo-section { background: #f8fafc; border-radius: 20px; padding: 12px; margin-bottom: 14px; }
+        .photo-preview { width: 70px; height: 70px; object-fit: cover; border-radius: 12px; cursor: pointer; border: 1px solid #e2e8f0; margin-right: 8px; }
+        .input-with-mic { display: flex; align-items: center; gap: 6px; }
+        .mic-small { background: #1e3c72; border: none; width: 36px; height: 36px; border-radius: 30px; color: white; cursor: pointer; flex-shrink: 0; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 18px; border-radius: 40px; z-index: 4000; display: none; font-size: 13px; white-space: nowrap; }
+        @media (max-width: 640px) { .toast { white-space: normal; text-align: center; max-width: 85%; font-size: 12px; } }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 6000; display: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3c72; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .collection-empty { padding: 20px; text-align: center; color: #94a3b8; font-size: 0.75rem; }
+        .modal-footer { padding: 12px 18px; border-top: 1px solid #eef2ff; display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; background: white; }
+        button { font-family: inherit; }
+        .detail-card { background: #f8fafc; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
+        .detail-row { display: flex; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+        .detail-label { width: 120px; font-weight: 600; color: #475569; font-size: 0.75rem; }
+        .detail-value { flex: 1; color: #1e293b; font-size: 0.8rem; font-weight: 500; }
+        .payment-history { max-height: 250px; overflow-y: auto; }
+        .payment-item { background: white; border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #10b981; }
+        .badge-payment { background: #10b981; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.65rem; }
+        .photo-detail { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .detail-photo { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; cursor: pointer; border: 1px solid #e2e8f0; }
+        .pdf-download-btn { background: #dc2626; color: white; border: none; padding: 6px 14px; border-radius: 40px; font-size: 0.7rem; cursor: pointer; margin-left: 10px; }
+        .export-pdf-btn { background: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+    <div class="login-card">
+        <div class="login-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <h2>Due Manager Pro</h2>
+        <p>Complete Collection System</p>
+        <div class="input-group">
+            <i class="fas fa-user input-icon"></i>
+            <select id="loginRole" class="login-input login-select">
+                <option value="">-- Select Role --</option>
+                <option value="admin">👑 Administrator</option>
+                <option value="user">👤 Staff User</option>
+            </select>
+        </div>
+        <div id="loginFields" style="display: none;">
+            <div class="input-group"><i class="fas fa-envelope input-icon"></i><input type="text" id="loginUsername" class="login-input" placeholder="Username"></div>
+            <div class="input-group"><i class="fas fa-lock input-icon"></i><input type="password" id="loginPassword" class="login-input" placeholder="Password"><button type="button" class="password-toggle" onclick="togglePassword()"><i class="fas fa-eye-slash"></i></button></div>
+            <button class="login-btn" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+        </div>
+        <div class="login-error" id="loginError">Invalid credentials</div>
+    </div>
+</div>
+
+<div class="app" id="app">
+    <div class="app-header">
+        <div class="logo"><i class="fas fa-hand-holding-usd"></i><h1>Due Manager <span class="pkr-badge">PKR</span></h1></div>
+        <div class="user-info" id="userInfo"></div>
+    </div>
+    <div class="main-container">
+        <div class="list-view">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><div class="stat-label">Total Customers</div><div class="stat-value" id="totalCustomers">0</div></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-rupee-sign"></i></div><div class="stat-info"><div class="stat-label">Total Due</div><div class="stat-value" id="totalDueAmount">PKR 0</div></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div><div class="stat-info"><div class="stat-label">Total Received</div><div class="stat-value" id="totalReceivedAmount">PKR 0</div></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div><div class="stat-info"><div class="stat-label">Remaining Due</div><div class="stat-value" id="totalRemainingDue">PKR 0</div></div></div>
+            </div>
+            <div class="search-section">
+                <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search by Name, Phone, City, Reference, Address..."><button class="mic-inside" id="micBtn"><i class="fas fa-microphone"></i></button></div>
+                <div class="action-bar">
+                    <div class="filter-group"><button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button><button class="filter-btn" data-filter="due" onclick="setFilter('due')">Has Due</button><button class="filter-btn" data-filter="cleared" onclick="setFilter('cleared')">Cleared</button></div>
+                    <button class="add-customer-btn" id="showAddBtn"><i class="fas fa-plus"></i> Add Customer</button>
+                    <div class="import-export">
+                        <button class="import-btn" id="importBtn"><i class="fas fa-file-import"></i> Import Excel</button>
+                        <button class="export-excel-btn" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Export Excel</button>
+                        <button class="export-pdf-btn" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Export All PDF</button>
+                        <button class="refresh-btn" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container">
+                <div class="table-scroll">
+                    <table class="customers-table">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Phone</th><th>City</th><th>Reference</th><th>Entry Date</th><th>Promise Date</th><th>Due</th><th>Received</th><th>Balance</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="customersList"><tr><td colspan="11" class="collection-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="side-panels">
+            <div class="reminder-panel"><div class="reminder-header"><h3><i class="fas fa-bell"></i> Due Reminders</h3><span id="reminderCount" class="badge-secondary">0</span></div><div id="reminderList" class="reminder-list"></div></div>
+            <div class="collection-panel"><div class="collection-header"><h3><i class="fas fa-history"></i> Today's Collection <span class="live-badge">LIVE</span></h3><span id="todayCollectionTotal" class="badge-secondary">PKR 0</span></div><div id="todayCollectionList" class="collection-list"></div><div class="date-info" id="todayDateInfo"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+<div class="image-viewer" id="imageViewer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); align-items:center; justify-content:center; z-index:10000;" onclick="closeImageViewer()"><img id="viewerImage" style="max-width:90%; max-height:90%;"></div>
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="customerModal">
+    <div class="modal-container">
+        <div class="modal-header"><h3 id="modalTitle">Add Customer</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editId">
+            <div class="form-group"><label>Full Name *</label><div class="input-with-mic"><input type="text" id="custName" placeholder="Full name" autocomplete="off"><button type="button" class="mic-small" data-target="custName"><i class="fas fa-microphone"></i></button></div><div id="nameDropdownList" class="dropdown-list"></div></div>
+            <div class="row-2cols"><div class="form-group"><label>Phone * (11 digits starting with 03)</label><input type="tel" id="custPhone" maxlength="11" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)"></div><div class="form-group"><label>CNIC (13 digits)</label><input type="text" id="custCnic" maxlength="13" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,13)"></div></div>
+            <div class="form-group"><label>City</label><div class="input-with-mic"><input type="text" id="custCity" autocomplete="off"><button type="button" class="mic-small" data-target="custCity"><i class="fas fa-microphone"></i></button></div><div id="cityDropdownList" class="dropdown-list"></div></div>
+            <div class="form-group"><label>Reference Name</label><div class="input-with-mic"><input type="text" id="custReference" autocomplete="off"><button type="button" class="mic-small" data-target="custReference"><i class="fas fa-microphone"></i></button></div><div id="refDropdownList" class="dropdown-list"></div></div>
+            <div class="form-group"><label>Book No</label><div class="input-with-mic"><input type="text" id="custBookNo" placeholder="Book Number"><button type="button" class="mic-small" data-target="custBookNo"><i class="fas fa-microphone"></i></button></div></div>
+            <div class="form-group"><label>Reason</label><div class="input-with-mic"><input type="text" id="custReason" placeholder="Reason (e.g., Business, Personal, etc.)"><button type="button" class="mic-small" data-target="custReason"><i class="fas fa-microphone"></i></button></div></div>
+            <div class="form-group"><label>Address</label><textarea id="custAddress" rows="2" placeholder="Full Address"></textarea></div>
+            <div class="row-2cols"><div class="form-group"><label>Entry Date</label><input type="date" id="custEntryDate"></div><div class="form-group"><label>Promise Date</label><input type="date" id="custPromiseDate"></div></div>
+            <div class="due-boxes"><div><label>Due Amount</label><input type="number" id="custDue" value="0" oninput="updateBalance()"></div><div><label>Received</label><input type="number" id="custReceive" value="0" oninput="updateBalance()"></div><div><label>Balance</label><input type="text" id="custBalance" readonly style="font-weight:700"></div></div>
+            <div class="photo-section"><h4>Customer Photo</h4><div><img id="customerPhotoPreview" class="photo-preview" style="display:none" onclick="openImageViewer(this.src)"><button type="button" class="photo-upload-btn" onclick="document.getElementById('customerPhotoInput').click()"> Upload</button><button type="button" class="remove-photo-btn" id="removeCustomerPhotoBtn" style="display:none" onclick="removePhoto('customer')">Remove</button><input type="file" id="customerPhotoInput" accept="image/*" style="display:none" onchange="previewPhoto(event,'customer')"></div></div>
+            <div class="photo-section"><h4>Bill Photo</h4><div><img id="billPhotoPreview" class="photo-preview" style="display:none" onclick="openImageViewer(this.src)"><button type="button" class="photo-upload-btn" onclick="document.getElementById('billPhotoInput').click()"> Upload</button><button type="button" class="remove-photo-btn" id="removeBillPhotoBtn" style="display:none" onclick="removePhoto('bill')">Remove</button><input type="file" id="billPhotoInput" accept="image/*" style="display:none" onchange="previewPhoto(event,'bill')"></div></div>
+        </div>
+        <div class="modal-footer"><button class="add-customer-btn" onclick="saveCustomer()">Save Customer</button><button class="filter-btn" onclick="closeModal()">Cancel</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="paymentModal"><div class="modal-container"><div class="modal-header"><h3>Receive Payment</h3><button class="modal-close" onclick="closePaymentModal()">&times;</button></div><div class="modal-body"><div class="form-group"><label>Customer</label><input type="text" id="payCustomerName" readonly></div><div class="form-group"><label>Current Balance</label><input type="text" id="payRemainingDue" readonly></div><div class="form-group"><label>Amount (PKR)</label><input type="number" id="payAmount" placeholder="Enter amount"></div><div class="form-group"><label>Payment Method</label><select id="payMethod"><option>Cash</option><option>Bank Transfer</option></select></div></div><div class="modal-footer"><button class="add-customer-btn" onclick="submitPayment()">Confirm Payment</button><button class="filter-btn" onclick="closePaymentModal()">Cancel</button></div></div></div>
+
+<!-- Customer Details Modal -->
+<div class="modal-overlay" id="viewModal">
+    <div class="modal-container" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-circle"></i> Customer Details</h3>
+            <div>
+                <button class="pdf-download-btn" id="downloadCustomerPdfBtn"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                <button class="modal-close" onclick="closeViewModal()">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" id="viewDetails"></div>
+        <div class="modal-footer"><button class="filter-btn" onclick="closeViewModal()">Close</button></div>
+    </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+    // ============ CONFIGURATION ============
+    const API_BASE_URL = '/api';
+    let authToken = null;
+    let currentUser = null;
+    let allCustomers = [];
+    let filteredCustomers = [];
+    let currentFilter = 'all';
+    let currentViewCustomerId = null;
+    let currentViewCustomerPayments = [];
+
+    function getPakistanDate() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }); }
+    function formatCurrency(amount) { return 'PKR ' + (parseFloat(amount)||0).toLocaleString(); }
+    function formatDate(dateStr) { if(!dateStr) return ''; return new Date(dateStr).toLocaleDateString('en-PK'); }
+    // Helper to convert database date (YYYY-MM-DD) to input[type="date"] value
+    function formatDateForInput(dateStr) {
+        if (!dateStr) return '';
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+        // Otherwise convert
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
+    }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+    function showToast(msg, type='success') { let t=document.getElementById('toast'); t.textContent=msg; t.style.background=type==='error'?'#dc3545':'#28a745'; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+    function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
+    function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
+    
+    async function apiCall(endpoint, method = 'GET', data = null) {
+        const options = {
+            method: method,
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Auth-Token': authToken || ''
+            }
+        };
+        if (data && (method === 'POST' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        try {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            if (response.status === 401) {
+                showToast('Session expired. Please login again.', 'error');
+                logout();
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`API Error (${endpoint}):`, error);
+            throw error;
+        }
+    }
+    
+    async function fetchCustomers() { return await apiCall('/customers'); }
+    async function fetchDueReminders() { return await apiCall('/customers?due_reminder=true'); }
+    async function fetchTodayCollection() { return await apiCall('/payments?today=true'); }
+    async function fetchCustomerPayments(customerId) { return await apiCall(`/payments?customer_id=${customerId}`); }
+    async function createCustomer(customerData) { return await apiCall('/customers', 'POST', customerData); }
+    async function updateCustomer(id, customerData) { return await apiCall(`/customer?id=${id}`, 'PUT', customerData); }
+    async function deleteCustomerById(id) { return await apiCall(`/customer?id=${id}`, 'DELETE'); }
+    async function createPayment(paymentData) { return await apiCall('/payments', 'POST', paymentData); }
+    
+    function updateBalance() {
+        let due = parseFloat(document.getElementById('custDue').value) || 0;
+        let rec = parseFloat(document.getElementById('custReceive').value) || 0;
+        if(rec > due) { 
+            document.getElementById('custReceive').value = due; 
+            rec = due; 
+        }
+        document.getElementById('custBalance').value = (due - rec).toLocaleString();
+    }
+    
+    function previewPhoto(e, type) {
+        let file = e.target.files[0];
+        if(file && file.type.startsWith('image/')) {
+            let reader = new FileReader();
+            reader.onload = ev => {
+                if(type === 'customer') {
+                    let img = document.getElementById('customerPhotoPreview');
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('removeCustomerPhotoBtn').style.display = 'inline-block';
+                } else {
+                    let img = document.getElementById('billPhotoPreview');
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('removeBillPhotoBtn').style.display = 'inline-block';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    function removePhoto(type) {
+        if(type === 'customer') {
+            document.getElementById('customerPhotoPreview').style.display = 'none';
+            document.getElementById('removeCustomerPhotoBtn').style.display = 'none';
+            document.getElementById('customerPhotoInput').value = '';
+        } else {
+            document.getElementById('billPhotoPreview').style.display = 'none';
+            document.getElementById('removeBillPhotoBtn').style.display = 'none';
+            document.getElementById('billPhotoInput').value = '';
+        }
+    }
+    
+    function openImageViewer(src) {
+        if(src) {
+            document.getElementById('viewerImage').src = src;
+            document.getElementById('imageViewer').style.display = 'flex';
+        }
+    }
+    
+    function closeImageViewer() { document.getElementById('imageViewer').style.display = 'none'; }
+    
+    function isValidPhone(phone) {
+        let p = String(phone).replace(/[^0-9]/g, '');
+        return p.length === 11 && p.startsWith('03');
+    }
+    
+    async function loadCustomers() {
+        showLoading();
+        try {
+            allCustomers = await fetchCustomers();
+            allCustomers = allCustomers.map(c => ({ 
+                ...c, 
+                due_amount: parseFloat(c.due_amount) || 0, 
+                total_paid: parseFloat(c.total_paid) || 0,
+                remaining_due: parseFloat(c.remaining_due) || (parseFloat(c.due_amount) - parseFloat(c.total_paid))
+            }));
+            
+            const reminders = await fetchDueReminders();
+            const todayPayments = await fetchTodayCollection();
+            
+            applyFilter();
+            
+            document.getElementById('totalCustomers').innerText = allCustomers.length;
+            document.getElementById('totalDueAmount').innerText = formatCurrency(allCustomers.reduce((s,c)=>s + c.due_amount, 0));
+            document.getElementById('totalReceivedAmount').innerText = formatCurrency(allCustomers.reduce((s,c)=>s + c.total_paid, 0));
+            document.getElementById('totalRemainingDue').innerText = formatCurrency(allCustomers.reduce((s,c)=>s + (c.due_amount - c.total_paid), 0));
+            
+            document.getElementById('reminderCount').innerHTML = reminders.length;
+            document.getElementById('reminderList').innerHTML = reminders.length ? 
+                reminders.map(c => `<div class="reminder-item" onclick="viewCustomer(${c.id})">
+                    <div class="reminder-name">${escapeHtml(c.name)}</div>
+                    <div class="reminder-detail">📞 ${c.phone} | Due: ${formatCurrency(c.remaining_due)}</div>
+                </div>`).join('') : '<div class="collection-empty">No reminders</div>';
+            
+            let todayTotal = todayPayments.reduce((s,p) => s + (parseFloat(p.amount) || 0), 0);
+            document.getElementById('todayCollectionTotal').innerHTML = formatCurrency(todayTotal);
+            document.getElementById('todayCollectionList').innerHTML = todayPayments.length ? 
+                todayPayments.map(p => `<div class="collection-item" onclick="viewCustomer(${p.customer_id})">
+                    <div class="collection-name">${escapeHtml(p.customer_name)}</div>
+                    <div class="collection-detail">📞 ${p.customer_phone || ''} | Amount: ${p.amount} PKR | ${p.payment_method}</div>
+                </div>`).join('') : '<div class="collection-empty">No collections today</div>';
+            
+            document.getElementById('todayDateInfo').innerHTML = `📅 Pakistan: ${getPakistanDate()}`;
+            updateDropdowns();
+        } catch (error) {
+            showToast('Failed to load data: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function applyFilter() {
+        let q = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = allCustomers.filter(c => 
+            (c.name || '').toLowerCase().includes(q) || 
+            (c.phone || '').includes(q) || 
+            (c.city || '').toLowerCase().includes(q) || 
+            (c.reference_name || '').toLowerCase().includes(q) || 
+            (c.address || '').toLowerCase().includes(q) ||
+            (c.reason || '').toLowerCase().includes(q)
+        );
+        
+        if(currentFilter === 'due') {
+            filtered = filtered.filter(c => (c.due_amount - c.total_paid) > 0);
+        } else if(currentFilter === 'cleared') {
+            filtered = filtered.filter(c => (c.due_amount - c.total_paid) === 0);
+        }
+        filteredCustomers = filtered;
+        renderCustomers();
+    }
+    
+    function renderCustomers() {
+        let tbody = document.getElementById('customersList');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        
+        filteredCustomers.forEach(c => {
+            let due = c.due_amount || 0;
+            let rec = c.total_paid || 0;
+            let rem = due - rec;
+            let isCleared = rem === 0;
+            
+            let row = tbody.insertRow();
+            row.className = isCleared ? 'cleared-row' : 'due-row';
+            row.insertCell(0).innerText = c.id;
+            row.insertCell(1).innerHTML = `<strong>${escapeHtml(c.name)}</strong>`;
+            row.insertCell(2).innerText = c.phone;
+            row.insertCell(3).innerText = c.city || '-';
+            row.insertCell(4).innerText = c.reference_name || '-';
+            row.insertCell(5).innerText = c.entry_date ? formatDate(c.entry_date) : '-';
+            row.insertCell(6).innerText = c.promise_date ? formatDate(c.promise_date) : '-';
+            row.insertCell(7).innerHTML = `<span class="due-amount-value">${due.toLocaleString()}</span>`;
+            row.insertCell(8).innerHTML = `<span style="color:#10b981">${rec.toLocaleString()}</span>`;
+            row.insertCell(9).innerHTML = `<span class="${isCleared ? '' : 'due-amount-value'}">${rem.toLocaleString()}</span>`;
+            
+            let act = row.insertCell(10);
+            act.className = 'action-buttons';
+            
+            let viewBtn = document.createElement('button');
+            viewBtn.className = 'action-btn view-action';
+            viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+            viewBtn.onclick = () => viewCustomer(c.id);
+            act.appendChild(viewBtn);
+            
+            if(currentUser?.role === 'admin') {
+                let editBtn = document.createElement('button');
+                editBtn.className = 'action-btn edit-action';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.onclick = () => editCustomer(c.id);
+                act.appendChild(editBtn);
+            }
+            
+            if(rem > 0) {
+                let payBtn = document.createElement('button');
+                payBtn.className = 'action-btn receive-action';
+                payBtn.innerHTML = '<i class="fas fa-rupee-sign"></i>';
+                payBtn.onclick = () => receivePayment(c.id);
+                act.appendChild(payBtn);
+            }
+            
+            if(currentUser?.role === 'admin') {
+                let delBtn = document.createElement('button');
+                delBtn.className = 'action-btn delete-action';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                delBtn.onclick = () => deleteCustomer(c.id);
+                act.appendChild(delBtn);
+            }
+        });
+    }
+    
+    async function saveCustomer() {
+        let due = parseFloat(document.getElementById('custDue').value) || 0;
+        let rec = parseFloat(document.getElementById('custReceive').value) || 0;
+        if(rec > due) {
+            showToast('Received exceeds due', 'error');
+            return;
+        }
+        
+        let phone = document.getElementById('custPhone').value.trim();
+        if(!isValidPhone(phone)) {
+            showToast('Phone must be 11 digits starting with 03', 'error');
+            return;
+        }
+        
+        let id = document.getElementById('editId').value;
+        let customerData = {
+            name: document.getElementById('custName').value.trim(),
+            phone: phone,
+            cnic: document.getElementById('custCnic').value.trim() || null,
+            city: document.getElementById('custCity').value || null,
+            reference_name: document.getElementById('custReference').value || null,
+            book_no: document.getElementById('custBookNo').value || null,
+            reason: document.getElementById('custReason').value || null,
+            address: document.getElementById('custAddress').value || null,
+            due_amount: due,
+            total_paid: rec,
+            entry_date: document.getElementById('custEntryDate').value || null,
+            promise_date: document.getElementById('custPromiseDate').value || null,
+            photo_data: document.getElementById('customerPhotoPreview').src || null,
+            bill_data: document.getElementById('billPhotoPreview').src || null
+        };
+        
+        showLoading();
+        try {
+            if(id) {
+                await updateCustomer(id, customerData);
+                showToast('Customer updated successfully');
+            } else {
+                await createCustomer(customerData);
+                showToast('Customer added successfully');
+            }
+            await loadCustomers();
+            closeModal();
+        } catch (error) {
+            showToast('Failed to save: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function editCustomer(id) {
+        if(currentUser?.role !== 'admin') return;
+        const c = allCustomers.find(x => x.id == id);
+        if(!c) return;
+        
+        document.getElementById('editId').value = c.id;
+        document.getElementById('custName').value = c.name || '';
+        document.getElementById('custPhone').value = c.phone || '';
+        document.getElementById('custCnic').value = c.cnic || '';
+        document.getElementById('custCity').value = c.city || '';
+        document.getElementById('custReference').value = c.reference_name || '';
+        document.getElementById('custBookNo').value = c.book_no || '';
+        document.getElementById('custReason').value = c.reason || '';
+        document.getElementById('custAddress').value = c.address || '';
+        // FIX: Use formatDateForInput to correctly set date values
+        document.getElementById('custEntryDate').value = formatDateForInput(c.entry_date);
+        document.getElementById('custPromiseDate').value = formatDateForInput(c.promise_date);
+        document.getElementById('custDue').value = c.due_amount || 0;
+        document.getElementById('custReceive').value = c.total_paid || 0;
+        updateBalance();
+        
+        if(c.photo_data) {
+            document.getElementById('customerPhotoPreview').src = c.photo_data;
+            document.getElementById('customerPhotoPreview').style.display = 'block';
+            document.getElementById('removeCustomerPhotoBtn').style.display = 'inline-block';
+        }
+        if(c.bill_data) {
+            document.getElementById('billPhotoPreview').src = c.bill_data;
+            document.getElementById('billPhotoPreview').style.display = 'block';
+            document.getElementById('removeBillPhotoBtn').style.display = 'inline-block';
+        }
+        
+        document.getElementById('modalTitle').innerText = 'Edit Customer';
+        openModal('customerModal');
+    }
+    
+    async function deleteCustomer(id) {
+        if(currentUser?.role !== 'admin') return;
+        if(confirm('Delete customer? All payments will be deleted.')) {
+            showLoading();
+            try {
+                await deleteCustomerById(id);
+                showToast('Customer deleted');
+                await loadCustomers();
+            } catch (error) {
+                showToast('Failed to delete: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+    }
+    
+    function receivePayment(id) {
+        let c = allCustomers.find(x => x.id == id);
+        let rem = (c.due_amount || 0) - (c.total_paid || 0);
+        if(rem <= 0) {
+            showToast('No pending due', 'error');
+            return;
+        }
+        document.getElementById('payCustomerName').value = c.name;
+        document.getElementById('payRemainingDue').value = formatCurrency(rem);
+        document.getElementById('paymentModal').dataset.customerId = id;
+        document.getElementById('payAmount').value = '';
+        openModal('paymentModal');
+    }
+    
+    async function submitPayment() {
+        let cid = parseInt(document.getElementById('paymentModal').dataset.customerId);
+        let amt = parseFloat(document.getElementById('payAmount').value);
+        if(isNaN(amt) || amt <= 0) {
+            showToast('Valid amount required', 'error');
+            return;
+        }
+        let customer = allCustomers.find(c => c.id === cid);
+        let remaining = (customer.due_amount || 0) - (customer.total_paid || 0);
+        if(amt > remaining) {
+            showToast(`Amount cannot exceed remaining due: ${formatCurrency(remaining)}`, 'error');
+            return;
+        }
+        showLoading();
+        try {
+            await createPayment({
+                customer_id: cid,
+                amount: amt,
+                payment_method: document.getElementById('payMethod').value
+            });
+            showToast(`Received ${amt} PKR`);
+            await loadCustomers();
+            closePaymentModal();
+        } catch (error) {
+            showToast('Failed to process payment: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function downloadCustomerPDF() {
+        if (!currentViewCustomerId) return;
+        const customer = allCustomers.find(c => c.id === currentViewCustomerId);
+        if (!customer) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        
+        doc.setFontSize(18);
+        doc.text("Customer Detail Report", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })}`, 14, 30);
+        doc.text(`Customer ID: ${customer.id}`, 14, 38);
+        
+        doc.setFontSize(12);
+        doc.text("Personal Information", 14, 50);
+        doc.setFontSize(10);
+        const personal = [
+            ["Name", customer.name || "-"],
+            ["Phone", customer.phone || "-"],
+            ["CNIC", customer.cnic || "-"],
+            ["City", customer.city || "-"],
+            ["Reference", customer.reference_name || "-"],
+            ["Book No", customer.book_no || "-"],
+            ["Reason", customer.reason || "-"],
+            ["Address", customer.address || "-"],
+            ["Entry Date", formatDate(customer.entry_date)],
+            ["Promise Date", formatDate(customer.promise_date)]
+        ];
+        doc.autoTable({
+            startY: 55,
+            head: [["Field", "Value"]],
+            body: personal,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 60, 114] },
+            margin: { left: 14, right: 14 }
+        });
+        
+        let finalY = doc.lastAutoTable.finalY + 8;
+        const balance = (customer.due_amount || 0) - (customer.total_paid || 0);
+        const financial = [
+            ["Due Amount", formatCurrency(customer.due_amount)],
+            ["Received Amount", formatCurrency(customer.total_paid)],
+            ["Balance", formatCurrency(balance)]
+        ];
+        doc.setFontSize(12);
+        doc.text("Financial Summary", 14, finalY);
+        doc.autoTable({
+            startY: finalY + 4,
+            head: [["Description", "Amount"]],
+            body: financial,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 60, 114] },
+            margin: { left: 14, right: 14 }
+        });
+        
+        finalY = doc.lastAutoTable.finalY + 8;
+        if (currentViewCustomerPayments && currentViewCustomerPayments.length > 0) {
+            doc.setFontSize(12);
+            doc.text("Payment History", 14, finalY);
+            const paymentRows = currentViewCustomerPayments.map(p => [
+                formatDate(p.payment_date),
+                p.payment_method || "Cash",
+                formatCurrency(p.amount)
+            ]);
+            doc.autoTable({
+                startY: finalY + 4,
+                head: [["Date", "Method", "Amount"]],
+                body: paymentRows,
+                theme: 'striped',
+                headStyles: { fillColor: [30, 60, 114] },
+                margin: { left: 14, right: 14 }
+            });
+        } else {
+            doc.setFontSize(10);
+            doc.text("No payment records found.", 14, finalY + 10);
+        }
+        
+        doc.save(`${customer.name.replace(/[^a-zA-Z0-9]/g, '_')}_details.pdf`);
+        showToast("PDF downloaded successfully");
+    }
+    
+    // Export All Customers to PDF – Address column added
+    function exportAllToPDF() {
+        if (!filteredCustomers || filteredCustomers.length === 0) {
+            showToast("No customer data to export.", "error");
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        
+        doc.setFontSize(16);
+        doc.text("All Customers Report", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })}`, 14, 30);
+        doc.text(`Total Customers: ${filteredCustomers.length}`, 14, 38);
+        
+        const tableData = filteredCustomers.map(c => [
+            c.id,
+            c.name || '-',
+            c.phone || '-',
+            c.city || '-',
+            c.reference_name || '-',
+            c.address || '-',          // Address column added
+            formatDate(c.entry_date),
+            formatDate(c.promise_date),
+            formatCurrency(c.due_amount),
+            formatCurrency(c.total_paid),
+            formatCurrency((c.due_amount||0) - (c.total_paid||0))
+        ]);
+        
+        doc.autoTable({
+            startY: 45,
+            head: [['ID', 'Name', 'Phone', 'City', 'Reference', 'Address', 'Entry Date', 'Promise Date', 'Due', 'Received', 'Balance']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 60, 114] },
+            margin: { left: 10, right: 10 },
+            styles: { fontSize: 8, cellPadding: 2 },
+            columnStyles: {
+                0: { cellWidth: 15 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 35 }, // Address column width
+                6: { cellWidth: 20 },
+                7: { cellWidth: 20 },
+                8: { cellWidth: 25 },
+                9: { cellWidth: 25 },
+                10: { cellWidth: 25 }
+            }
+        });
+        
+        doc.save(`all_customers_report_${getPakistanDate()}.pdf`);
+        showToast("All customers PDF exported successfully");
+    }
+    
+    async function viewCustomer(id) {
+        currentViewCustomerId = id;
+        const c = allCustomers.find(x => x.id == id);
+        if(!c) return;
+        
+        showLoading();
+        try {
+            const payments = await fetchCustomerPayments(id);
+            currentViewCustomerPayments = payments;
+            let balance = (c.due_amount || 0) - (c.total_paid || 0);
+            
+            let html = `
+                <div class="detail-card">
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-user"></i> Full Name:</div><div class="detail-value"><strong>${escapeHtml(c.name)}</strong></div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-phone"></i> Phone:</div><div class="detail-value">${escapeHtml(c.phone)}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-id-card"></i> CNIC:</div><div class="detail-value">${escapeHtml(c.cnic) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-city"></i> City:</div><div class="detail-value">${escapeHtml(c.city) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-user-friends"></i> Reference:</div><div class="detail-value">${escapeHtml(c.reference_name) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-book"></i> Book No:</div><div class="detail-value">${escapeHtml(c.book_no) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-question-circle"></i> Reason:</div><div class="detail-value">${escapeHtml(c.reason) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-map-marker-alt"></i> Address:</div><div class="detail-value">${escapeHtml(c.address) || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-calendar-alt"></i> Entry Date:</div><div class="detail-value">${formatDate(c.entry_date)}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-calendar-check"></i> Promise Date:</div><div class="detail-value">${formatDate(c.promise_date)}</div></div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-rupee-sign"></i> Due Amount:</div><div class="detail-value" style="color:#e11d48; font-weight:700;">${formatCurrency(c.due_amount)}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-hand-holding-usd"></i> Received:</div><div class="detail-value" style="color:#10b981; font-weight:700;">${formatCurrency(c.total_paid)}</div></div>
+                    <div class="detail-row"><div class="detail-label"><i class="fas fa-balance-scale"></i> Balance:</div><div class="detail-value" style="color:${balance>0?'#e11d48':'#10b981'}; font-weight:700;">${formatCurrency(balance)}</div></div>
+                </div>
+            `;
+            if(c.photo_data || c.bill_data) {
+                html += `<div class="detail-card"><div class="detail-label">Photos:</div><div class="photo-detail">`;
+                if(c.photo_data) html += `<img src="${c.photo_data}" class="detail-photo" onclick="openImageViewer('${c.photo_data}')">`;
+                if(c.bill_data) html += `<img src="${c.bill_data}" class="detail-photo" onclick="openImageViewer('${c.bill_data}')">`;
+                html += `</div></div>`;
+            }
+            if(payments.length > 0) {
+                html += `<div class="detail-card"><div class="detail-label"><i class="fas fa-history"></i> Payment History:</div><div class="payment-history">`;
+                payments.forEach(p => {
+                    html += `<div class="payment-item">
+                        <span><strong>${formatDate(p.payment_date)}</strong></span>
+                        <span>${formatCurrency(p.amount)}</span>
+                        <span class="badge-payment">${escapeHtml(p.payment_method)}</span>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            } else {
+                html += `<div class="detail-card"><div class="detail-label"><i class="fas fa-history"></i> Payment History:</div><div class="collection-empty">No payments recorded yet</div></div>`;
+            }
+            document.getElementById('viewDetails').innerHTML = html;
+            const pdfBtn = document.getElementById('downloadCustomerPdfBtn');
+            if (pdfBtn) {
+                const newBtn = pdfBtn.cloneNode(true);
+                pdfBtn.parentNode.replaceChild(newBtn, pdfBtn);
+                newBtn.onclick = downloadCustomerPDF;
+            }
+            openModal('viewModal');
+        } catch (error) {
+            showToast('Failed to load details: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    function exportToExcel() {
+        if (!filteredCustomers || filteredCustomers.length === 0) {
+            showToast("No customer data to export. Please refresh.", "error");
+            return;
+        }
+        const columns = ["ID", "Name", "Phone", "CNIC", "City", "Reference Name", "Book No", "Reason", "Address", "Entry Date", "Promise Date", "Due (PKR)", "Received (PKR)", "Balance (PKR)"];
+        const rows = filteredCustomers.map(c => [
+            c.id, c.name || '', c.phone || '', c.cnic || '-', c.city || '-', c.reference_name || '-', c.book_no || '-', c.reason || '-', c.address || '-',
+            c.entry_date ? new Date(c.entry_date).toLocaleDateString('en-PK') : '-',
+            c.promise_date ? new Date(c.promise_date).toLocaleDateString('en-PK') : '-',
+            (c.due_amount || 0).toLocaleString(), (c.total_paid || 0).toLocaleString(), ((c.due_amount || 0) - (c.total_paid || 0)).toLocaleString()
+        ]);
+        const wsData = [columns, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = columns.map(col => ({ wch: Math.max(col.length, 15) }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Customers");
+        XLSX.writeFile(wb, `customer_report_${getPakistanDate()}.xlsx`);
+        showToast("Excel report exported successfully");
+    }
+    
+    async function importFromExcel() {
+        if(currentUser?.role !== 'admin') {
+            showToast('Only Admin can import data', 'error');
+            return;
+        }
+        let input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls,.csv';
+        input.onchange = async (e) => {
+            let file = e.target.files[0];
+            if(!file) return;
+            showLoading();
+            try {
+                let data = await file.arrayBuffer();
+                let workbook = XLSX.read(data, { type: 'array', cellText: false, cellDates: true });
+                let firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "", raw: false });
+                if(!rows.length) throw new Error('No data found');
+                let importedCount = 0, skippedCount = 0;
+                for(let row of rows) {
+                    let name = row['Full Name'] || row['Customer Name'] || row['Name'] || row['full_name'] || '';
+                    let phoneRaw = row['Phone'] || row['Mobile'] || row['Contact'] || row['phone'] || '';
+                    let phone = String(phoneRaw).replace(/[^0-9]/g,'');
+                    if(phone.length === 10 && phone.startsWith('3')) phone = '0' + phone;
+                    if(name && phone.length === 11 && phone.startsWith('03')) {
+                        let dueAmt = parseFloat(row['Due Amount'] || row['Due'] || row['Balance'] || 0);
+                        let paidAmt = parseFloat(row['Received'] || row['Paid'] || row['Total Paid'] || 0);
+                        let customerData = {
+                            name: String(name).trim().slice(0,255), phone: phone,
+                            cnic: String(row['CNIC'] || row['ID Card'] || '').replace(/[^0-9]/g,'') || null,
+                            city: row['City'] || row['Location'] || null,
+                            reference_name: row['Reference'] || row['Reference Name'] || null,
+                            book_no: row['Book No'] || row['Book Number'] || null,
+                            reason: row['Reason'] || null,
+                            address: row['Address'] || null,
+                            due_amount: dueAmt, total_paid: paidAmt,
+                            entry_date: null, promise_date: null
+                        };
+                        try { await createCustomer(customerData); importedCount++; } catch(err) { skippedCount++; }
+                    } else { skippedCount++; }
+                }
+                if(importedCount > 0) { await loadCustomers(); showToast(`✅ Imported: ${importedCount} | Skipped: ${skippedCount}`); }
+                else { showToast('No valid records found', 'error'); }
+            } catch(err) { showToast('Import failed: ' + err.message, 'error'); }
+            hideLoading();
+        };
+        input.click();
+    }
+    
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if(modal) { modal.style.display = 'flex'; document.body.classList.add('modal-open'); }
+    }
+    function closeModalWithScroll(modalId) {
+        const modal = document.getElementById(modalId);
+        if(modal) { modal.style.display = 'none'; document.body.classList.remove('modal-open'); }
+    }
+    function closeModal() { closeModalWithScroll('customerModal'); clearForm(); }
+    function closePaymentModal() { closeModalWithScroll('paymentModal'); }
+    function closeViewModal() { closeModalWithScroll('viewModal'); currentViewCustomerId = null; currentViewCustomerPayments = []; }
+    
+    function clearForm() {
+        document.getElementById('editId').value = '';
+        document.getElementById('custName').value = '';
+        document.getElementById('custPhone').value = '';
+        document.getElementById('custCnic').value = '';
+        document.getElementById('custCity').value = '';
+        document.getElementById('custReference').value = '';
+        document.getElementById('custBookNo').value = '';
+        document.getElementById('custReason').value = '';
+        document.getElementById('custAddress').value = '';
+        document.getElementById('custEntryDate').value = getPakistanDate();
+        document.getElementById('custPromiseDate').value = '';
+        document.getElementById('custDue').value = '0';
+        document.getElementById('custReceive').value = '0';
+        updateBalance();
+        removePhoto('customer');
+        removePhoto('bill');
+        document.getElementById('modalTitle').innerText = 'Add Customer';
+    }
+    
+    function setFilter(f) {
+        currentFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            if(btn.getAttribute('data-filter') === f) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        applyFilter();
+    }
+    
+    function updateDropdowns() {
+        const nameDropdown = document.getElementById('nameDropdownList');
+        const refDropdown = document.getElementById('refDropdownList');
+        const cityDropdown = document.getElementById('cityDropdownList');
+        if(!nameDropdown || !refDropdown || !cityDropdown) return;
+        const uniqueNames = [...new Set(allCustomers.map(c => c.name).filter(n => n && n.trim()))];
+        const uniqueRefs = [...new Set(allCustomers.map(c => c.reference_name).filter(r => r && r.trim()))];
+        let uniqueCities = [...new Set(allCustomers.map(c => c.city).filter(city => city && city.trim()))];
+        if(!uniqueCities.includes('Faisalabad')) uniqueCities.unshift('Faisalabad');
+        nameDropdown.innerHTML = '';
+        uniqueNames.forEach(name => { const div = document.createElement('div'); div.textContent = name; div.onclick = () => selectName(name); nameDropdown.appendChild(div); });
+        refDropdown.innerHTML = '';
+        uniqueRefs.forEach(ref => { const div = document.createElement('div'); div.textContent = ref; div.onclick = () => selectReference(ref); refDropdown.appendChild(div); });
+        cityDropdown.innerHTML = '';
+        uniqueCities.forEach(city => { const div = document.createElement('div'); div.textContent = city; div.onclick = () => selectCity(city); cityDropdown.appendChild(div); });
+    }
+    
+    function selectName(name) {
+        document.getElementById('custName').value = name;
+        document.getElementById('nameDropdownList').style.display = 'none';
+        const customer = allCustomers.find(c => c.name === name);
+        if(customer && customer.reference_name) document.getElementById('custReference').value = customer.reference_name;
+        if(customer && customer.city) document.getElementById('custCity').value = customer.city;
+        if(customer && customer.reason) document.getElementById('custReason').value = customer.reason;
+    }
+    function selectReference(ref) { document.getElementById('custReference').value = ref; document.getElementById('refDropdownList').style.display = 'none'; }
+    function selectCity(city) { document.getElementById('custCity').value = city; document.getElementById('cityDropdownList').style.display = 'none'; }
+    
+    function setupDropdownListeners() {
+        const nameInput = document.getElementById('custName');
+        const refInput = document.getElementById('custReference');
+        const cityInput = document.getElementById('custCity');
+        const nameDropdown = document.getElementById('nameDropdownList');
+        const refDropdown = document.getElementById('refDropdownList');
+        const cityDropdown = document.getElementById('cityDropdownList');
+        if(!nameInput || !refInput || !cityInput) return;
+        nameInput.addEventListener('click', (e) => { e.stopPropagation(); updateDropdowns(); nameDropdown.style.display = 'block'; if(refDropdown) refDropdown.style.display = 'none'; if(cityDropdown) cityDropdown.style.display = 'none'; });
+        nameInput.addEventListener('input', () => { const val = nameInput.value.toLowerCase(); const filtered = [...new Set(allCustomers.map(c => c.name).filter(n => n && n.toLowerCase().includes(val)))]; nameDropdown.innerHTML = ''; filtered.forEach(name => { const div = document.createElement('div'); div.textContent = name; div.onclick = () => selectName(name); nameDropdown.appendChild(div); }); nameDropdown.style.display = filtered.length ? 'block' : 'none'; });
+        refInput.addEventListener('click', (e) => { e.stopPropagation(); updateDropdowns(); refDropdown.style.display = 'block'; if(nameDropdown) nameDropdown.style.display = 'none'; if(cityDropdown) cityDropdown.style.display = 'none'; });
+        refInput.addEventListener('input', () => { const val = refInput.value.toLowerCase(); const filtered = [...new Set(allCustomers.map(c => c.reference_name).filter(r => r && r.toLowerCase().includes(val)))]; refDropdown.innerHTML = ''; filtered.forEach(ref => { const div = document.createElement('div'); div.textContent = ref; div.onclick = () => selectReference(ref); refDropdown.appendChild(div); }); refDropdown.style.display = filtered.length ? 'block' : 'none'; });
+        cityInput.addEventListener('click', (e) => { e.stopPropagation(); updateDropdowns(); cityDropdown.style.display = 'block'; if(nameDropdown) nameDropdown.style.display = 'none'; if(refDropdown) refDropdown.style.display = 'none'; });
+        cityInput.addEventListener('input', () => { const val = cityInput.value.toLowerCase(); let allCities = [...new Set(allCustomers.map(c => c.city).filter(city => city && city.trim()))]; if(!allCities.includes('Faisalabad')) allCities.unshift('Faisalabad'); const filtered = allCities.filter(city => city.toLowerCase().includes(val)); cityDropdown.innerHTML = ''; filtered.forEach(city => { const div = document.createElement('div'); div.textContent = city; div.onclick = () => selectCity(city); cityDropdown.appendChild(div); }); cityDropdown.style.display = filtered.length ? 'block' : 'none'; });
+        document.addEventListener('click', (e) => {
+            if(nameInput && nameDropdown && !nameInput.contains(e.target) && !nameDropdown.contains(e.target)) nameDropdown.style.display = 'none';
+            if(refInput && refDropdown && !refInput.contains(e.target) && !refDropdown.contains(e.target)) refDropdown.style.display = 'none';
+            if(cityInput && cityDropdown && !cityInput.contains(e.target) && !cityDropdown.contains(e.target)) cityDropdown.style.display = 'none';
+        });
+    }
+    
+    function initVoice() {
+        if(!('webkitSpeechRecognition' in window)) return;
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recog = new Recognition();
+        recog.lang = 'en-PK';
+        recog.continuous = false;
+        const attach = (btn, target) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                recog.start();
+                btn.style.background = '#c2410c';
+                recog.onresult = (event) => { let transcript = event.results[0][0].transcript; if(target) { target.value = transcript; if(target.id === 'searchInput') applyFilter(); } btn.style.background = '#1e3c72'; };
+                recog.onerror = (err) => { console.error(err); showToast('Voice recognition failed.', 'error'); btn.style.background = '#1e3c72'; };
+                recog.onend = () => { btn.style.background = '#1e3c72'; };
+            });
+        };
+        document.querySelectorAll('.mic-small').forEach(btn => { let targetId = btn.getAttribute('data-target'); if(targetId) { let targetElem = document.getElementById(targetId); if(targetElem) attach(btn, targetElem); } });
+        let searchMic = document.getElementById('micBtn'); if(searchMic) attach(searchMic, document.getElementById('searchInput'));
+    }
+    
+    function togglePassword() {
+        let pwd = document.getElementById('loginPassword');
+        let icon = document.querySelector('.password-toggle i');
+        if(pwd.type === 'password') { pwd.type = 'text'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+        else { pwd.type = 'password'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+    }
+    
+    function logout() {
+        localStorage.removeItem('dueManagerUser');
+        localStorage.removeItem('authToken');
+        authToken = null;
+        location.reload();
+    }
+    
+    document.getElementById('loginRole').addEventListener('change', function() { document.getElementById('loginFields').style.display = this.value ? 'block' : 'none'; });
+    document.getElementById('loginBtn').onclick = () => {
+        let role = document.getElementById('loginRole').value;
+        let user = document.getElementById('loginUsername').value.trim();
+        let pass = document.getElementById('loginPassword').value;
+        if(role === 'admin' && user === 'admin' && pass === 'admin123') currentUser = { role: 'admin', username: user };
+        else if(role === 'user' && user === 'user' && pass === 'user123') currentUser = { role: 'user', username: user };
+        else { document.getElementById('loginError').style.display = 'block'; setTimeout(() => document.getElementById('loginError').style.display = 'none', 2500); return; }
+        authToken = btoa(`${user}:${Date.now()}`);
+        localStorage.setItem('dueManagerUser', JSON.stringify(currentUser));
+        localStorage.setItem('authToken', authToken);
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        document.getElementById('userInfo').innerHTML = `<span class="role-badge ${currentUser.role}">${currentUser.role === 'admin' ? 'ADMIN' : 'STAFF'}</span><span>${escapeHtml(user)}</span><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>`;
+        if(currentUser.role !== 'admin') document.getElementById('importBtn').classList.add('disabled');
+        loadCustomers();
+        initVoice();
+        setupDropdownListeners();
+    };
+    
+    function checkSavedSession() {
+        let saved = localStorage.getItem('dueManagerUser');
+        let token = localStorage.getItem('authToken');
+        if(saved && token) {
+            currentUser = JSON.parse(saved);
+            authToken = token;
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            document.getElementById('userInfo').innerHTML = `<span class="role-badge ${currentUser.role}">${currentUser.role === 'admin' ? 'ADMIN' : 'STAFF'}</span><span>${escapeHtml(currentUser.username)}</span><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>`;
+            if(currentUser.role !== 'admin') document.getElementById('importBtn').classList.add('disabled');
+            loadCustomers();
+            initVoice();
+            setupDropdownListeners();
+            return true;
+        }
+        return false;
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('showAddBtn').onclick = () => { clearForm(); openModal('customerModal'); };
+        document.getElementById('exportExcelBtn').onclick = exportToExcel;
+        document.getElementById('exportPdfBtn').onclick = exportAllToPDF;
+        document.getElementById('importBtn').onclick = importFromExcel;
+        document.getElementById('refreshBtn').onclick = () => loadCustomers();
+        document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(window.srch); window.srch = setTimeout(applyFilter, 300); });
+        if(!checkSavedSession()) { document.getElementById('loginScreen').style.display = 'flex'; document.getElementById('app').style.display = 'none'; }
+    });
+    
+    window.setFilter = setFilter;
+    window.viewCustomer = viewCustomer;
+    window.editCustomer = editCustomer;
+    window.deleteCustomer = deleteCustomer;
+    window.receivePayment = receivePayment;
+    window.closeModal = closeModal;
+    window.closePaymentModal = closePaymentModal;
+    window.closeViewModal = closeViewModal;
+    window.saveCustomer = saveCustomer;
+    window.submitPayment = submitPayment;
+    window.updateBalance = updateBalance;
+    window.removePhoto = removePhoto;
+    window.previewPhoto = previewPhoto;
+    window.openImageViewer = openImageViewer;
+    window.closeImageViewer = closeImageViewer;
+    window.logout = logout;
+    window.togglePassword = togglePassword;
+    window.selectName = selectName;
+    window.selectReference = selectReference;
+    window.selectCity = selectCity;
+    window.exportToExcel = exportToExcel;
+    window.exportAllToPDF = exportAllToPDF;
+</script>
+</body>
+</html>
